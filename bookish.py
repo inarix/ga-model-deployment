@@ -168,7 +168,6 @@ class ModelDeployment(FlowSpec):
         max_retry = int(os.environ.get("INPUT_MAXRETRY", "10"))
         tts = int(os.environ.get("INPUT_TTS", "5"))
         headers = {"Authorization": f"Bearer {token}"}
-
         while True and max_retry > 0:
             res = requests.get(f"{endpoint}/{name}", headers=headers)
             if res.status_code != 200:
