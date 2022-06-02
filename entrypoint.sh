@@ -71,6 +71,9 @@ MODEL_INSTANCE_ID=$(cat modelInstanceId)
 THREAD_TS=$(cat threadTS)
 echo "[$(date +"%m/%d/%y %T")] modelInstanceId is $MODEL_INSTANCE_ID and threadTS is $THREAD_TS"
 echo "::endgroup::"
+fi
+
+# TODO: find a way to fetch back model instance id registered by the API
 
 ## Launches loki tests
 echo "::group::Loki non-regression tests"
