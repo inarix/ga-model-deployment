@@ -1,13 +1,13 @@
 name: 'ga-model-deployment'
 description: 'Launch Metaflow model deployment worflow & Launch Loki tests'
 inputs:
+  skipDeployment:
+    description: 'Skips metaflow ArgoWorkflow for model deployment and API registration'
+    required: true
+    default: "0"
   modelInstanceId:
     description: 'generated modelInstanceId given by previous registerModel in bookish-happiness'
-    required: true
-  argoServer:
-    description: 'Host of the Argo server to trigger the worflow'
     required: false
-    default: 'argo.inarix.com'
   workflowTemplateName:
     description: 'Name of the Argo Workflow template to run'
     required: false
