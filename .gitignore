@@ -1,5 +1,8 @@
 .vscode
+<<<<<<< HEAD
 .metaflow
 .env
 *.tmp
 **/__pycache__
+=======
+>>>>>>> bc59230 (Update: some addings)
