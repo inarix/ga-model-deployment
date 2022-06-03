@@ -9,6 +9,7 @@ RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/
     echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc &&\
     source ~/.bashrc
 
+RUN apk add curl
 # Install Glib 'cause does aws install does not work on ALPINE
 RUN pip install --upgrade awscli s3cmd python-magic && \
     apk -v --purge del py-pip
