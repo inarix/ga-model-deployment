@@ -1,32 +1,32 @@
-name: 'ga-model-deployment'
-description: 'Launch Metaflow model deployment worflow & Launch Loki tests'
+name: "ga-model-deployment"
+description: "Launch Metaflow model deployment worflow & Launch Loki tests"
 outputs:
   results: # id of output
-    description: 'Results of the model prediction regression workflow'
+    description: "Results of the model prediction regression workflow"
   success:
-    description: 'Does Loki integration has succeed or not'
+    description: "Does Loki integration has succeed or not"
   threadTS:
-    description: 'Run Slack threadTS'
+    description: "Run Slack threadTS"
   modelInstanceId:
-    description: 'ModelInstance id registered by the API'
+    description: "ModelInstance id registered by the API"
 inputs:
   lokiSkip:
-    description: 'Skips Loki ArgoWorkflow.'
+    description: "Skips Loki ArgoWorkflow."
     required: true
     default: "0"
   workflowTemplateName:
-    description: 'Name of the Argo Workflow template to run'
+    description: "Name of the Argo Workflow template to run"
     required: false
-    default: 'workflowtemplate/wt-model-deploy-non-regression'
+    default: "workflowtemplate/wt-model-deploy-non-regression"
   pypiUsername:
-    description: 'Username for inarix pypiserver'
+    description: "Username for inarix pypiserver"
     required: true
   pypiPassword:
-    description: 'Password for inarix pypiserver'
+    description: "Password for inarix pypiserver"
     required: true
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: "docker"
+  image: "Dockerfile"
   args:
     - ${{ inputs.pypiUsername }}
     - ${{ inputs.pypiPassword }}

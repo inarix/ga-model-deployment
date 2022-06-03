@@ -73,8 +73,6 @@ echo "[$(date +"%m/%d/%y %T")] modelInstanceId is $MODEL_INSTANCE_ID and threadT
 echo "::endgroup::"
 fi
 
-# TODO: find a way to fetch back model instance id registered by the API
-
 ## Launches loki tests
 echo "::group::Loki non-regression tests"
 if [[ $INPUT_LOKISKIP == 1 ]]
@@ -110,6 +108,7 @@ then
   echo "::set-output name=threadTS::${THREAD_TS}"
   echo "::set-output name=modelInstanceId::${MODEL_INSTANCE_ID}"
   echo "::set-output name=success::false"
+  
 elif [[ "${HAS_SUCCEED}" == "TEST_HAS_PASSED" ]]
 then
   echo "::set-output name=results::'${LOGS}'"

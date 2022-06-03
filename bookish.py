@@ -378,6 +378,13 @@ class ModelDeployment(FlowSpec):
             print(
                 f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
 
+        run_id = os.environ.get("ARGO_WORKFLOW_NAME")
+        with S3(s3root=f's3://loki-artefacts/metaflow/modelInstanceIds/{run_id}') as s3:
+            url = s3.put('modelInstanceId', self._model_instance_id)
+            url = s3.put('threadTS', self._thread_ts)
+            print(
+                f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
+
 
 if __name__ == '__main__':
     ModelDeployment(use_cli=True)
