@@ -5,7 +5,7 @@ in fact GithubAction is down, or unaccessible.
 """
 import os
 import time
-from metaflow import FlowSpec, step, IncludeFile
+from metaflow import FlowSpec, step, IncludeFile, S3
 from requests.exceptions import HTTPError
 
 def generate_app_model_name(repo_name: str, model_version:str) -> str:
@@ -314,8 +314,12 @@ class ModelDeployment(FlowSpec):
         os.system("pip install slackclient==2.9.4")
         self._send_slack_message(
             f"{self.model_name} has been registered to inarix-api with id {self._model_instance_id}!", self._thread_ts)
-        print("Launching LokiLauncher Flow")
 
+        run_id=os.environ.get("ARGO_WORKFLOW_NAME")
+        with S3(s3root=f's3://loki-artefacts/metaflow/modelInstanceIds/{run_id}') as s3:
+            url = s3.put('modelInstanceId', self._model_instance_id)
+            url = s3.put('threadTS', self._thread_ts)
+            print(f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
 
 if __name__ == '__main__':
     ModelDeployment(use_cli=True)

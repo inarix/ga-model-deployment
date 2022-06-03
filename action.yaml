@@ -17,6 +17,8 @@ outputs:
     description: 'Results of the model prediction regression workflow'
   success:
     description: 'Does Loki integration has succeed or not'
+  threadTS:
+    description: 'Run Slack threadTS'
 runs:
   using: 'docker'
   image: 'Dockerfile'

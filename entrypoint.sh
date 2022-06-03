@@ -47,14 +47,23 @@ echo "[$(date +"%m/%d/%y %T")] Launching model deployment"
 WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
 echo "[$(date +"%m/%d/%y %T")] Waiting $WORKFLOW_MODEL_DEPLOY_ID to finish"
 argo wait $WORKFLOW_MODEL_DEPLOY_ID
+URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/modelInstanceId"
+URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
+echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
+aws s3 cp $URI_MODEL_INSTANCE_ID ./modelInstanceId
+aws s3 cp $URI_THREAD_TS ./threadTS
+MODEL_INSTANCE_ID=$(cat modelInstanceId)
+THREAD_TS=$(cat threadTS)
 echo "::endgroup::"
 fi
 
-# TODO: find a way to fetch back model instance id registered by the API
-
 ## Launches loki tests
 echo "::group::Loki non-regression tests"
+if [[ $INPUT_SKIPDEPLOYMENT == 1 ]]
+then
 MODEL_INSTANCE_ID="$INPUT_MODELINSTANCEID"
+fi
+
 WORFLOW_TEMPLATE_NAME="$INPUT_WORKFLOWTEMPLATENAME"
 REGRESSION_TEST_ID="non-regression-${MODEL_INSTANCE_ID}-$(date +"%s")"
 if [[ -z $MODEL_INSTANCE_ID || $MODEL_INSTANCE_ID == "" || $INPUT_MODELINSTANCEID == "" ]]
@@ -67,6 +76,8 @@ then
   exit 1
 fi
 
+PREDICTION_ENDPOINT="https://${API_ENDPOINT}/imodels/predict"
+echo "[$(date +"%m/%d/%y %T")] Adding arguments inarix_api_hostname: $API_ENDPOINT"
 WORKFLOW_NAME=$(argo submit --from $WORFLOW_TEMPLATE_NAME -w -p test_id=$REGRESSION_TEST_ID -p model_instance_id=$MODEL_INSTANCE_ID -p test_file_location_id=$LOKI_FILE_LOCATION_ID -p environment=$WORKER_ENV -p inarix_api_hostname=$API_ENDPOINT -p prediction_entrypoint=$PREDICTION_ENDPOINT  -o json | jq -e -r .metadata.name)
 LOGS=$(argo logs $WORKFLOW_NAME --no-color)
 
@@ -74,7 +85,7 @@ LOGS=$(argo logs $WORKFLOW_NAME --no-color)
 # TRAILED_LOGS=$(echo -n $LOGS | tail -n +2 | while read line; do; echo $($line | cut -d ':' -f2-) ; done )
 
 # echo "TRAILED_LOGS=${TRAILED_LOGS}"
-HAS_SUCCEED=$(echo -n "${LOGS}" | tail -n1 | cut -d : -f2- | tr -d ' ')
+HAS_SUCCEED=$(echo -n "${LOGS}" | tail -n3 | head -n1 | cut -d : -f2- | tr -d ' ')
 
 # -- Remove line breaker before sending values (Required by GithubAction)  --
 LOGS="${LOGS//$'\n'/'%0A'}"
@@ -82,13 +93,17 @@ LOGS="${LOGS//$'\n'/'%0A'}"
 if [[ "${HAS_SUCCEED}" == "TEST_HAS_FAILED" ]]
 then
   echo "::set-output name=results::'${LOGS}'"
+  echo "::set-output name=threadTS::${THREAD_TS}"
   echo "::set-output name=success::false"
+  
 elif [[ "${HAS_SUCCEED}" == "TEST_HAS_PASSED" ]]
 then
   echo "::set-output name=results::'${LOGS}'"
+  echo "::set-output name=threadTS::${THREAD_TS}"
   echo "::set-output name=success::true"
 else
   echo "::set-output name=results::'${LOGS}'"
+  echo "::set-output name=threadTS::${THREAD_TS}"
   echo "::set-output name=success::false"
 fi
 echo "::endgroup::"
