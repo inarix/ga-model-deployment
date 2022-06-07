@@ -1,5 +1,5 @@
 FROM argoproj/argocli:v3.3.6 AS argo-builder
-FROM python:3-alpine
+FROM alpine:3.16
 WORKDIR /app
 
 # Install AWS AUTH AUTHENTICATOR
@@ -11,8 +11,8 @@ RUN apk add curl && \
     source ~/.bashrc
 
 # Install Glib 'cause does aws install does not work on ALPINE
-RUN pip install --upgrade awscli s3cmd python-magic && \
-    apk -v --purge del py-pip
+RUN apk add --upgrade --no-cache ca-certificates curl jq bash groff less python binutils py-pip  mailcap awscli s3cmd python-magic 
+RUN apk -v --purge del py-pip
 
 # Since using argo to trigger runs, doesn't need to pip install other than metaflow
 RUN python -m pip install metaflow==2.6.3
@@ -22,4 +22,4 @@ COPY Makefile /app
 COPY bookish.py /app
 COPY entrypoint.sh /app
 
-ENTRYPOINT [ "entrypoint.sh" ]
+ENTRYPOINT [ "./entrypoint.sh" ]
