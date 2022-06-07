@@ -33,7 +33,7 @@ echo "::group::Metaflow auto-model-deployment"
 function fromArgoToWorkflowId {
 make argo >>output.tmp 2>&1
 INPUT=$(cat output.tmp | tail -n1)
-python -c "
+python3 -c "
 import re
 import sys
 input= sys.argv[1]
@@ -41,6 +41,11 @@ input= re.findall('\((.*?)\)',input)[0]
 splitted=input.split(' ')[1].lstrip('argo-')
 print(splitted)
 " "$INPUT"
+if [[ $? == 1 ]]
+then
+echo "An error occured while fetching Workflow id"
+exit 1
+fi
 rm output.tmp
 }
 echo "[$(date +"%m/%d/%y %T")] Launching model deployment"
