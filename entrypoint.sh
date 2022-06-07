@@ -43,7 +43,8 @@ print(splitted)
 " "$INPUT"
 if [[ $? == 1 ]]
 then
-echo "An error occured while fetching Workflow id"
+echo "An error occured while fetching Workflow id:"
+cat output.tmp
 exit 1
 fi
 rm output.tmp
