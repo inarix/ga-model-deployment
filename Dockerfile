@@ -1,5 +1,5 @@
 FROM argoproj/argocli:v3.3.6 AS argo-builder
-FROM alpine:3.16
+FROM gcr.io/distroless/python3-debian10
 WORKDIR /app
 
 # Install AWS AUTH AUTHENTICATOR
@@ -11,7 +11,7 @@ RUN apk add curl && \
     source ~/.bashrc
 
 # Install Glib 'cause does aws install does not work on ALPINE
-RUN apk add --upgrade --no-cache ca-certificates curl jq bash groff less python binutils py-pip  mailcap awscli s3cmd python-magic 
+RUN apk add --upgrade --no-cache ca-certificates jq bash groff less python binutils py-pip  mailcap awscli s3cmd python-magic 
 RUN apk -v --purge del py-pip
 
 # Since using argo to trigger runs, doesn't need to pip install other than metaflow
