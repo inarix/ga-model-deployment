@@ -26,6 +26,10 @@ fi
 echo "[$(date +"%m/%d/%y %T")] Authenticated to cluster with success"
 echo "::endgroup::"
 
+echo "::group::ArgoWorkflow list"
+argo list
+echo "::endgroup::"
+
 ## Launches Metaflow for model deployment
 if [[ $INPUT_SKIPDEPLOYMENT == 0 ]]
 then
@@ -53,6 +57,11 @@ echo "[$(date +"%m/%d/%y %T")] Launching model deployment"
 WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
 echo "[$(date +"%m/%d/%y %T")] Waiting $WORKFLOW_MODEL_DEPLOY_ID to finish"
 argo wait $WORKFLOW_MODEL_DEPLOY_ID
+if [[ $? == 1 ]]
+then
+echo "[$(date +"%m/%d/%y %T")] ArgoWorkflow failed"
+exit 1
+fi
 URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/modelInstanceId"
 URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
 echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
