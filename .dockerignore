@@ -1,6 +1,0 @@
-*.md
-*.yaml
-.git
-env
-.vscode
-.gitignore

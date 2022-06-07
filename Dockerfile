@@ -3,8 +3,8 @@ FROM alpine:3.16
 WORKDIR /app
 
 LABEL version="1.0.0"
-LABEL repository="https://github.com/inarix/potential-fortnigh"
-LABEL homepage="https://github.com/inarix/potential-fortnigh"
+LABEL repository="https://github.com/inarix/ga-model-deployment"
+LABEL homepage="https://github.com/inarix/ga-model-deployment"
 LABEL maintainer="Alexandre Saison <alexandre.saison@inarix.com>"
 
 # install required for entrypoint.sh and AWS AUTH AUTHENTICATOR
@@ -18,14 +18,16 @@ RUN apk add --no-cache ca-certificates curl jq bash groff less binutils mailcap 
 ENV PYTHONUNBUFFERED=1
 RUN apk add --update --no-cache python3 py3-pip && ln -sf python3 /usr/bin/python && python -m ensurepip && pip install --no-cache --upgrade pip setuptools
 
+# Since those file won't change that much (using docker cache to improve build time)
+COPY Makefile /app
+COPY requirements.txt /app
+
 # Install Glib 'cause does aws install does not work on ALPINE
-RUN python -m pip install --upgrade awscli s3cmd python-magic
+RUN python -m pip install --upgrade awscli s3cmd python-magic -r requirements.txt
 
 COPY --from=argo-builder /bin/argo /usr/local/bin/argo
-COPY Makefile /app
-COPY . /app
-
-RUN python -m pip install -r requirements.txt
-
+COPY bookish.py /app
+COPY entrypoint.sh /app
+COPY .env /app
 
 ENTRYPOINT ["/app/entrypoint.sh"]
