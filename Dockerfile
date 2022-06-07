@@ -28,6 +28,5 @@ RUN python -m pip install --upgrade awscli s3cmd python-magic -r requirements.tx
 COPY --from=argo-builder /bin/argo /usr/local/bin/argo
 COPY bookish.py /app
 COPY entrypoint.sh /app
-COPY .env /app
 
 ENTRYPOINT ["/app/entrypoint.sh"]
