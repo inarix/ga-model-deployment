@@ -18,7 +18,7 @@ RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/
 
 # Install Glib 'cause does aws install does not work on ALPINE
 RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install --upgrade awscli s3cmd python-magic  metaflow==2.6.3
+RUN python3 -m pip install --upgrade awscli s3cmd python-magic metaflow==2.6.3 kubernetes
 
 COPY --from=argo-builder /bin/argo /usr/local/bin/argo
 COPY . /app

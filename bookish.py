@@ -11,7 +11,6 @@ from requests.exceptions import HTTPError
 def generate_app_model_name(repo_name: str, model_version:str) -> str:
     model_name = repo_name.split("/")[1]
     return f"{model_name}-{model_version.replace('.', '-')}"
-    pass
 
 def script_path(filename):
     """
