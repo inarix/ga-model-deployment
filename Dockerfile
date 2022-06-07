@@ -22,6 +22,7 @@ RUN apk add --update --no-cache python3 py3-pip && ln -sf python3 /usr/bin/pytho
 RUN python -m pip install --upgrade awscli s3cmd python-magic
 
 COPY --from=argo-builder /bin/argo /usr/local/bin/argo
+COPY Makefile /app
 COPY . /app
 
 RUN python -m pip install -r requirements.txt
