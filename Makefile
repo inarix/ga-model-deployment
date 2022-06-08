@@ -1,13 +1,16 @@
-init:
-	pip install -r requirements.txt
+.PHONY: init argo argo-deploy clean local
 
-local: 
-	python bookish.py run
+init: requirements.txt
+	@pip install -r requirements.txt
+
+local: init
+	@python bookish.py run
 
 argo-deploy: 
-	METAFLOW_KUBERNETES_SERVICE_ACCOUNT=argo-workflow METAFLOW_DATASTORE_SYSROOT_S3="s3://loki-artefacts/metaflow/" python3 bookish.py --datastore=s3 argo-workflows create
+	METAFLOW_KUBERNETES_SERVICE_ACCOUNT=argo-workflow METAFLOW_DATASTORE_SYSROOT_S3="s3://loki-artefacts/metaflow/" python bookish.py --datastore=s3 argo-workflows create
 
-argo: argo-deploy
-	METAFLOW_KUBERNETES_SERVICE_ACCOUNT=argo-workflow METAFLOW_DATASTORE_SYSROOT_S3="s3://loki-artefacts/metaflow/" python3 bookish.py --datastore=s3 argo-workflows trigger --env_file .env
+argo: clean argo-deploy
+	METAFLOW_KUBERNETES_SERVICE_ACCOUNT=argo-workflow METAFLOW_DATASTORE_SYSROOT_S3="s3://loki-artefacts/metaflow/" python bookish.py --datastore=s3 argo-workflows trigger --env_file .env
 
-.PHONY: init local argo argo-deploy
+clean:
+	rm -rf __pycache__

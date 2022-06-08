@@ -17,12 +17,12 @@ fi
 # Create the KUBECONFIG to be authenticated to cluster
 echo "Creation of the KUBECONFIG and connection to the cluster $CLUSTER_NAME"
 aws eks --region eu-west-1 update-kubeconfig --name $CLUSTER_NAME
-
 if [[ $? == 1 ]]
 then
   echo "[$(date +"%m/%d/%y %T")] An error occured during creation of kubeconfig or connection to cluster $CLUSTER_NAME"
   exit 1
 fi
+
 echo "[$(date +"%m/%d/%y %T")] Authenticated to cluster with success"
 echo "::endgroup::"
 
@@ -34,7 +34,9 @@ echo "::endgroup::"
 if [[ $INPUT_SKIPDEPLOYMENT == 0 ]]
 then
 echo "::group::Metaflow auto-model-deployment"
-function fromArgoToWorkflowId {
+function fromArgoToWorkflowId { 
+# As $() run in a subshell, /app is lost as subshell starts at root
+cd /app
 make argo >>output.tmp 2>&1
 INPUT=$(cat output.tmp | tail -n1)
 python3 -c "
@@ -52,6 +54,7 @@ cat output.tmp
 exit 1
 fi
 rm output.tmp
+cd -
 }
 echo "[$(date +"%m/%d/%y %T")] Launching model deployment"
 WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
