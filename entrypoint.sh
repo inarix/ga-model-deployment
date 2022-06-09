@@ -36,6 +36,7 @@ then
 echo "::group::Metaflow auto-model-deployment"
 function fromArgoToWorkflowId { 
 # As $() run in a subshell, /app is lost as subshell starts at root
+cp .env /app
 cd /app
 make argo >>output.tmp 2>&1
 INPUT=$(cat output.tmp | tail -n1)
