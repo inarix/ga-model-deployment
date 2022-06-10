@@ -40,27 +40,22 @@ then
     cd /app
     make argo >>output.tmp 2>&1
     INPUT=$(cat output.tmp | tail -n1)
-    python3 -c "
-    import re
-    import sys
-    input= sys.argv[1]
-    input= re.findall('\((.*?)\)',input)[0]
-    splitted=input.split(' ')[1].lstrip('argo-')
-    print(splitted)
-    " "$INPUT"
+    python -c "import re; import sys; input= sys.argv[1]; input= re.findall('\((.*?)\)',input)[0]; splitted=input.split(' ')[1].lstrip('argo-'); print(splitted);" $INPUT
     if [[ $? == 1 ]]
     then
       echo "An error occured while fetching Workflow id:"
       cat output.tmp
       exit 1
     fi
+    cp output.tmp /tmp/output.tmp
+    rm output.tmp
     cd -
   }
 
   echo "[$(date +"%m/%d/%y %T")] Launch model deployment"
   WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
   echo "[$(date +"%m/%d/%y %T")] Display output.tmp"
-  cat output.tmp
+  cat /tmp/output.tmp
   echo "[$(date +"%m/%d/%y %T")] Waiting..."
   argo wait $WORKFLOW_MODEL_DEPLOY_ID
   if [[ $? == 1 ]]

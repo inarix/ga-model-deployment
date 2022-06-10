@@ -290,7 +290,7 @@ class ModelDeployment(FlowSpec):
         host_endpoint = self.env_vars.get("TMP_INARIX_HOSTNAME")
         endpoint = f"https://{host_endpoint}/imodels/model-instance"
         headers = {"Authorization": f"Bearer {token}"}
-        metadata = filter(metadata_filter, self.env_vars)
+        metadata = {k: self.env_vars[k] for k in self.env_vars if not k.startswith('TMP_')}
         model_registration_payload = {"templateId": int(model_template_id), "branchSlug": self._workerEnv, "version": f"{self.model_version}",
                                       "dockerImageUri": f"eu.gcr.io/{project_id}/{self.applied_repo}:{self.model_version}-staging", "isDeployed": True, "metadata": metadata}
 
