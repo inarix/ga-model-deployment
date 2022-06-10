@@ -33,54 +33,57 @@ echo "::endgroup::"
 ## Launches Metaflow for model deployment
 if [[ $INPUT_SKIPDEPLOYMENT == 0 ]]
 then
-echo "::group::Metaflow auto-model-deployment"
-function fromArgoToWorkflowId { 
-# As $() run in a subshell, /app is lost as subshell starts at root
-cp .env /app
-cd /app
-make argo >>output.tmp 2>&1
-INPUT=$(cat output.tmp | tail -n1)
-python3 -c "
-import re
-import sys
-input= sys.argv[1]
-input= re.findall('\((.*?)\)',input)[0]
-splitted=input.split(' ')[1].lstrip('argo-')
-print(splitted)
-" "$INPUT"
-if [[ $? == 1 ]]
-then
-echo "An error occured while fetching Workflow id:"
-cat output.tmp
-exit 1
-fi
-rm output.tmp
-cd -
-}
-echo "[$(date +"%m/%d/%y %T")] Launching model deployment"
-WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
-echo "[$(date +"%m/%d/%y %T")] Waiting $WORKFLOW_MODEL_DEPLOY_ID to finish"
-argo wait $WORKFLOW_MODEL_DEPLOY_ID
-if [[ $? == 1 ]]
-then
-echo "[$(date +"%m/%d/%y %T")] ArgoWorkflow failed"
-exit 1
-fi
-URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/modelInstanceId"
-URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
-echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
-aws s3 cp $URI_MODEL_INSTANCE_ID ./modelInstanceId
-aws s3 cp $URI_THREAD_TS ./threadTS
-MODEL_INSTANCE_ID=$(cat modelInstanceId)
-THREAD_TS=$(cat threadTS)
-echo "::endgroup::"
+  echo "::group::Metaflow auto-model-deployment"
+  function fromArgoToWorkflowId { 
+    # As $() run in a subshell, /app is lost as subshell starts at root
+    cp .env /app
+    cd /app
+    make argo >>output.tmp 2>&1
+    INPUT=$(cat output.tmp | tail -n1)
+    python3 -c "
+    import re
+    import sys
+    input= sys.argv[1]
+    input= re.findall('\((.*?)\)',input)[0]
+    splitted=input.split(' ')[1].lstrip('argo-')
+    print(splitted)
+    " "$INPUT"
+    if [[ $? == 1 ]]
+    then
+      echo "An error occured while fetching Workflow id:"
+      cat output.tmp
+      exit 1
+    fi
+    cd -
+  }
+
+  echo "[$(date +"%m/%d/%y %T")] Launch model deployment"
+  WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
+  echo "[$(date +"%m/%d/%y %T")] Display output.tmp"
+  cat output.tmp
+  echo "[$(date +"%m/%d/%y %T")] Waiting..."
+  argo wait $WORKFLOW_MODEL_DEPLOY_ID
+  if [[ $? == 1 ]]
+  then
+    echo "[$(date +"%m/%d/%y %T")] ArgoWorkflow failed"
+    exit 1
+  fi
+
+  URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/modelInstanceId"
+  URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
+  echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
+  aws s3 cp $URI_MODEL_INSTANCE_ID ./modelInstanceId
+  aws s3 cp $URI_THREAD_TS ./threadTS
+  MODEL_INSTANCE_ID=$(cat modelInstanceId)
+  THREAD_TS=$(cat threadTS)
+  echo "::endgroup::"
 fi
 
 ## Launches loki tests
 echo "::group::Loki non-regression tests"
 if [[ $INPUT_SKIPDEPLOYMENT == 1 ]]
 then
-MODEL_INSTANCE_ID="$INPUT_MODELINSTANCEID"
+  MODEL_INSTANCE_ID="$INPUT_MODELINSTANCEID"
 fi
 
 WORFLOW_TEMPLATE_NAME="$INPUT_WORKFLOWTEMPLATENAME"
@@ -114,7 +117,6 @@ then
   echo "::set-output name=results::'${LOGS}'"
   echo "::set-output name=threadTS::${THREAD_TS}"
   echo "::set-output name=success::false"
-  
 elif [[ "${HAS_SUCCEED}" == "TEST_HAS_PASSED" ]]
 then
   echo "::set-output name=results::'${LOGS}'"

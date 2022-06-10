@@ -21,6 +21,12 @@ def script_path(filename):
     filepath = os.path.join(os.path.dirname(__file__))
     return os.path.join(filepath, filename)
 
+def metadata_filter(obj):
+    """
+    Used for metadata in API model instance to not provide any credentials or unwanted values
+    """
+    print("metadata_filter::obj=",obj)
+    return "TMP_" not in obj[0]
 
 class ModelDeployment(FlowSpec):
     """
@@ -277,7 +283,6 @@ class ModelDeployment(FlowSpec):
         os.system("pip install slackclient==2.9.4")
         self.env_vars["ci"] = {"source": "Github Action",
                                "provider": "Metaflow", "path": __file__}
-        metadata = dict([x.strip().split('=') for x in self.env_file.split("\n") if '=' in x])
         model_template_id = self.env_vars.get("MODEL_TEMPLATE_ID")
         project_id = self.env_vars.get("GOOGLE_PROJECT_ID")
 
@@ -285,6 +290,7 @@ class ModelDeployment(FlowSpec):
         host_endpoint = self.env_vars.get("TMP_INARIX_HOSTNAME")
         endpoint = f"https://{host_endpoint}/imodels/model-instance"
         headers = {"Authorization": f"Bearer {token}"}
+        metadata = filter(metadata_filter, self.env_vars)
         model_registration_payload = {"templateId": int(model_template_id), "branchSlug": self._workerEnv, "version": f"{self.model_version}",
                                       "dockerImageUri": f"eu.gcr.io/{project_id}/{self.applied_repo}:{self.model_version}-staging", "isDeployed": True, "metadata": metadata}
 
