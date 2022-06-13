@@ -95,17 +95,16 @@ class ModelDeployment(FlowSpec):
             print(f"_send_slack_message got an error: {e.response['error']}")
 
     @step
-    def check_sha(self, model_version: str) -> bool:
-        sha_only = model_version.split("-")
+    def check_sha(self) -> bool:
+        sha_only = self.model_version.split("-")
         compiled_version_rgx = re.compile(
             r"^v(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$")
         if len(sha_only) < 2:
-            #  no SHA (v1.)
-            res = compiled_version_rgx.match(model_version)
+            #  no SHA (e.g: 1.24.0-devops)
+            res = compiled_version_rgx.match(self.model_version)
             if res is None:
                 return False
             res = res.groups()
-            print(res)
             return True
         else:
             # with SHA
