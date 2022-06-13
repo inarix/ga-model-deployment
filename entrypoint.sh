@@ -47,12 +47,11 @@ then
       exit 1
     fi
     rm output.tmp
-    cd -
   }
 
   echo "[$(date +"%m/%d/%y %T")] Launch model deployment"
   WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
-  echo "[$(date +"%m/%d/%y %T")] Waiting \n$WORKFLOW_MODEL_DEPLOY_ID\n"
+  echo "[$(date +"%m/%d/%y %T")] Waiting $WORKFLOW_MODEL_DEPLOY_ID"
   argo wait $WORKFLOW_MODEL_DEPLOY_ID
   if [[ $? == 1 ]]
   then

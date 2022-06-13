@@ -94,6 +94,7 @@ class ModelDeployment(FlowSpec):
                 return self._send_slack_message(msg, thread_ts)
             print(f"_send_slack_message got an error: {e.response['error']}")
 
+    @step
     def check_sha(self, model_version: str) -> bool:
         sha_only = model_version.split("-")
         compiled_version_rgx = re.compile(
