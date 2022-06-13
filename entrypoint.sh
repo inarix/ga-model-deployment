@@ -26,15 +26,8 @@ fi
 echo "[$(date +"%m/%d/%y %T")] Authenticated to cluster with success"
 echo "::endgroup::"
 
-echo "::group::ArgoWorkflow list"
-argo list
-echo "::endgroup::"
-
-## Launches Metaflow for model deployment
-if [[ $INPUT_SKIPDEPLOYMENT == 0 ]]
-then
-  echo "::group::Metaflow auto-model-deployment"
-  function fromArgoToWorkflowId { 
+echo "::group::Metaflow auto-model-deployment"
+function fromArgoToWorkflowId { 
     # As $() run in a subshell, /app is lost as subshell starts at root
     cp .env /app
     cd /app
@@ -42,43 +35,38 @@ then
     python -c "import re; import sys; input = sys.argv[1]; input = re.findall('\(run-id\s.*\)', input)[0]; input = input[1:len(input)-1]; splitted = input.split(' ')[1].lstrip('argo-'); print(splitted);" "$(cat output.tmp)"
     if [[ $? == 1 ]]
     then
-      echo "An error occured while fetching Workflow id:"
-      cat output.tmp
-      exit 1
+        echo "An error occured while fetching Workflow id:"
+        cat output.tmp
+        exit 1
     fi
     rm output.tmp
-  }
+}
 
-  echo "[$(date +"%m/%d/%y %T")] Launch model deployment"
-  WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
-  echo "[$(date +"%m/%d/%y %T")] Waiting $WORKFLOW_MODEL_DEPLOY_ID"
-  argo wait $WORKFLOW_MODEL_DEPLOY_ID
-  if [[ $? == 1 ]]
-  then
-    echo "[$(date +"%m/%d/%y %T")] ArgoWorkflow failed"
-    exit 1
-  fi
-
-  URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/modelInstanceId"
-  URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
-  echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
-  aws s3 cp $URI_MODEL_INSTANCE_ID ./modelInstanceId
-  aws s3 cp $URI_THREAD_TS ./threadTS
-  MODEL_INSTANCE_ID=$(cat modelInstanceId)
-  THREAD_TS=$(cat threadTS)
-  echo "::endgroup::"
+echo "[$(date +"%m/%d/%y %T")] Launch model deployment"
+WORKFLOW_MODEL_DEPLOY_ID=$(fromArgoToWorkflowId)
+echo "[$(date +"%m/%d/%y %T")] Waiting $WORKFLOW_MODEL_DEPLOY_ID"
+argo wait $WORKFLOW_MODEL_DEPLOY_ID
+if [[ $? == 1 ]]
+then
+echo "[$(date +"%m/%d/%y %T")] ArgoWorkflow failed"
+exit 1
 fi
+
+URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/modelInstanceId"
+URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
+echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
+aws s3 cp $URI_MODEL_INSTANCE_ID ./modelInstanceId
+aws s3 cp $URI_THREAD_TS ./threadTS
+MODEL_INSTANCE_ID=$(cat modelInstanceId)
+THREAD_TS=$(cat threadTS)
+echo "::endgroup::"
 
 ## Launches loki tests
 echo "::group::Loki non-regression tests"
-if [[ $INPUT_SKIPDEPLOYMENT == 1 ]]
-then
-  MODEL_INSTANCE_ID="$INPUT_MODELINSTANCEID"
-fi
 
 WORFLOW_TEMPLATE_NAME="$INPUT_WORKFLOWTEMPLATENAME"
 REGRESSION_TEST_ID="non-regression-${MODEL_INSTANCE_ID}-$(date +"%s")"
-if [[ -z $MODEL_INSTANCE_ID || $MODEL_INSTANCE_ID == "" || $INPUT_MODELINSTANCEID == "" ]]
+if [[ -z $MODEL_INSTANCE_ID || $MODEL_INSTANCE_ID == "" ]]
 then
   echo "[$(date +"%m/%d/%y %T")] Error: missing MODEL_INSTANCE_ID env variable"
   exit 1
