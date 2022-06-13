@@ -94,7 +94,6 @@ class ModelDeployment(FlowSpec):
                 return self._send_slack_message(msg, thread_ts)
             print(f"_send_slack_message got an error: {e.response['error']}")
 
-    @step
     def check_sha(self) -> bool:
         sha_only = self.model_version.split("-")
         compiled_version_rgx = re.compile(
@@ -103,8 +102,8 @@ class ModelDeployment(FlowSpec):
             #  no SHA (e.g: 1.24.0-devops)
             res = compiled_version_rgx.match(self.model_version)
             if res is None:
+                self._send_slack_message(f"given {self.model_version} is not semver complient.", self._thread_ts)
                 return False
-            res = res.groups()
             return True
         else:
             # with SHA
@@ -138,8 +137,8 @@ class ModelDeployment(FlowSpec):
         self._send_slack_message(
             "All required env variable have been found in provided env file", self._thread_ts)
         print("Now checking for SHA in MODEL_VERSION")
-        if not self.check_sha(self.model_version):
-            raise RuntimeError("SHA does not match the requirements")
+        if not self.check_sha():
+            raise RuntimeError(f"SHA version ({self.model_version}) does not match the requirements")
         print("SHA version is complient")
         self.next(self.argo_application_creation)
 
