@@ -39,10 +39,7 @@ then
     cp .env /app
     cd /app
     make argo >>output.tmp 2>&1
-    INPUT=$(cat output.tmp | tail -n1)
-    python -c "import re; import sys; input= sys.argv[1]; input= re.findall('\((.*?)\)',input)[0]; splitted=input.split(' ')[1].lstrip('argo-'); print(splitted);" $INPUT
-    echo "\n\n"
-    cat output.tmp
+    python -c "import re; import sys; input = sys.argv[1]; input = re.findall('\(run-id\s.*\)', input)[0]; input = input[1:len(input)-1]; splitted = input.split(' ')[1].lstrip('argo-'); print(splitted);" "$(cat output.tmp)"
     if [[ $? == 1 ]]
     then
       echo "An error occured while fetching Workflow id:"
