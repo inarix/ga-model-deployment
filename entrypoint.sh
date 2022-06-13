@@ -90,6 +90,10 @@ fi
 
 PREDICTION_ENDPOINT="https://${API_ENDPOINT}/imodels/predict"
 echo "[$(date +"%m/%d/%y %T")] Adding arguments inarix_api_hostname: $API_ENDPOINT"
+echo "[$(date +"%m/%d/%y %T")] Adding arguments test_id: $REGRESSION_TEST_ID"
+echo "[$(date +"%m/%d/%y %T")] Adding arguments model_instance_id: $MODEL_INSTANCE_ID"
+echo "[$(date +"%m/%d/%y %T")] Adding arguments test_file_location_id: $LOKI_FILE_LOCATION_ID"
+echo "[$(date +"%m/%d/%y %T")] Adding arguments prediction_entrypoint: $PREDICTION_ENDPOINT"
 WORKFLOW_NAME=$(argo submit --from $WORFLOW_TEMPLATE_NAME -w -p test_id=$REGRESSION_TEST_ID -p model_instance_id=$MODEL_INSTANCE_ID -p test_file_location_id=$LOKI_FILE_LOCATION_ID -p environment=$WORKER_ENV -p inarix_api_hostname=$API_ENDPOINT -p prediction_entrypoint=$PREDICTION_ENDPOINT  -o json | jq -e -r .metadata.name)
 LOGS=$(argo logs $WORKFLOW_NAME --no-color)
 
