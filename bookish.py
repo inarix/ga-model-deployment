@@ -48,10 +48,13 @@ class ModelDeployment(FlowSpec):
         self.env_vars = dict([x.strip().split('=')
                               for x in self.env_file.split("\n") if '=' in x])
 
-        self.model_version: str = self.env_vars.get("NUTSHELL_MODEL_VERSION") or ""
-        self.model_name: str = generate_app_model_name(self.env_vars.get("GITHUB_REPOSITORY"), self.model_version)[3:]
+        self.model_version: str = self.env_vars.get(
+            "NUTSHELL_MODEL_VERSION") or ""
+        self.model_name: str = generate_app_model_name(
+            self.env_vars.get("GITHUB_REPOSITORY"), self.model_version)[3:]
         self.application_name: str = f"mt-{self.model_name}" or ""
-        self.applied_repo = self.env_vars.get("GITHUB_REPOSITORY").split("/")[1]
+        self.applied_repo = self.env_vars.get(
+            "GITHUB_REPOSITORY").split("/")[1]
 
         self._workerEnv = self.env_vars.get("WORKER_ENV") or ""
         self._argocdToken = self.env_vars.get("TMP_ARGOCD_TOKEN") or ""
