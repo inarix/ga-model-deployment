@@ -56,25 +56,32 @@ URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_M
 URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
 echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
 aws s3 cp $URI_MODEL_INSTANCE_ID ./modelInstanceId
+if [[ $? == 1 ]]
+then
+echo "[$(date +"%m/%d/%y %T")] An error occured while fetching $URI_MODEL_INSTANCE_ID"
+exit 1
+fi
 aws s3 cp $URI_THREAD_TS ./threadTS
+if [[ $? == 1 ]]
+then
+echo "[$(date +"%m/%d/%y %T")] An error occured while fetching $URI_THREAD_TS"
+exit 1
+fi
 MODEL_INSTANCE_ID=$(cat modelInstanceId)
 THREAD_TS=$(cat threadTS)
+echo "[$(date +"%m/%d/%y %T")] modelInstanceId is $MODEL_INSTANCE_ID and threadTS is $THREAD_TS"
 echo "::endgroup::"
 
 ## Launches loki tests
 echo "::group::Loki non-regression tests"
+if [[ $INPUT_LOKISKIP == 1 ]]
+then
+    echo "[$(date +"%m/%d/%y %T")] Loki has been skipped. Model deployment finished with success"
+    exit 0
+fi
 
 WORFLOW_TEMPLATE_NAME="$INPUT_WORKFLOWTEMPLATENAME"
 REGRESSION_TEST_ID="non-regression-${MODEL_INSTANCE_ID}-$(date +"%s")"
-if [[ -z $MODEL_INSTANCE_ID || $MODEL_INSTANCE_ID == "" ]]
-then
-  echo "[$(date +"%m/%d/%y %T")] Error: missing MODEL_INSTANCE_ID env variable"
-  exit 1
-elif [[ -z $WORFLOW_TEMPLATE_NAME ]]
-then
-  echo "[$(date +"%m/%d/%y %T")] Error: missing WORFLOW_TEMPLATE_NAME env variable"
-  exit 1
-fi
 
 PREDICTION_ENDPOINT="https://${API_ENDPOINT}/imodels/predict"
 echo "[$(date +"%m/%d/%y %T")] Adding arguments inarix_api_hostname: $API_ENDPOINT"
