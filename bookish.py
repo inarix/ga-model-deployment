@@ -4,14 +4,16 @@ This is meant to be used with Github Action, or locally when
 in fact GithubAction is down, or unaccessible.
 """
 import os
+import re
 import time
 from metaflow import FlowSpec, step, IncludeFile, S3
 from requests.exceptions import HTTPError
 
-def generate_app_model_name(repo_name: str, model_version:str) -> str:
+
+def generate_app_model_name(repo_name: str, model_version: str) -> str:
     model_name = repo_name.split("/")[1]
     return f"{model_name}-{model_version.replace('.', '-')}"
-    pass
+
 
 def script_path(filename):
     """
@@ -29,11 +31,11 @@ class ModelDeployment(FlowSpec):
     """
 
     env_file = IncludeFile(
-            name="env_file",
-            required=False,
-            is_text=True,
-            help=".env file to use for ArgoCD application creation",
-            default=script_path(".env")
+        name="env_file",
+        required=False,
+        is_text=True,
+        help=".env file to use for ArgoCD application creation",
+        default=script_path(".env")
     )
 
     @step
@@ -43,16 +45,16 @@ class ModelDeployment(FlowSpec):
         This creates env variables dict to be used
         """
         os.system("pip install slackclient==2.9.4")
-        self.env_vars = dict([x.strip().split('=') for x in self.env_file.split("\n") if '=' in x])
+        self.env_vars = dict([x.strip().split('=')
+                              for x in self.env_file.split("\n") if '=' in x])
 
-        self.model_version: str = self.env_vars.get("NUTSHELL_MODEL_VERSION") or ""
-        self.model_name: str = generate_app_model_name(self.env_vars.get("GITHUB_REPOSITORY"), self.model_version)[3:]
+        self.model_version: str = self.env_vars.get(
+            "NUTSHELL_MODEL_VERSION") or ""
+        self.model_name: str = generate_app_model_name(
+            self.env_vars.get("GITHUB_REPOSITORY"), self.model_version)[3:]
         self.application_name: str = f"mt-{self.model_name}" or ""
-        self.applied_repo = self.env_vars.get("GITHUB_REPOSITORY").split("/")[1]
-
-        self.env_vars["MODEL_NAME"] = self.model_name
-        self.env_vars["MODEL_VERSION"] = self.model_version
-        self.env_vars["APPLICATION_NAME"] = self.application_name
+        self.applied_repo = self.env_vars.get(
+            "GITHUB_REPOSITORY").split("/")[1]
 
         self._workerEnv = self.env_vars.get("WORKER_ENV") or ""
         self._argocdToken = self.env_vars.get("TMP_ARGOCD_TOKEN") or ""
@@ -92,20 +94,20 @@ class ModelDeployment(FlowSpec):
                 return self._send_slack_message(msg, thread_ts)
             print(f"_send_slack_message got an error: {e.response['error']}")
 
-    def check_sha(self, is_production: bool, model_version: str) -> bool:
-        """
-        Check model_version to always complains the requirements
-        """
-        if is_production:
+    def check_sha(self) -> bool:
+        sha_only = self.model_version.split("-")
+        compiled_version_rgx = re.compile(
+            r"^v(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$")
+        if len(sha_only) < 2:
+            #  no SHA (e.g: 1.24.0-devops)
+            res = compiled_version_rgx.match(self.model_version)
+            if res is None:
+                self._send_slack_message(f"given {self.model_version} is not semver complient.", self._thread_ts)
+                return False
             return True
-        if len(model_version) <= 8:
-            self._send_slack_message("MODEL_VERSION should never be more than 8 chars", self._thread_ts)
-            return False
-        sha_only = model_version.split("-")[1]
-        if len(sha_only) < 6:
-            self._send_slack_message(f"SHA({sha_only}) should always have 6 chars", self._thread_ts)
-            return False
-        return True
+        else:
+            # with SHA
+            return len(sha_only[1]) == 6
 
     @step
     def check_inputs(self):
@@ -132,10 +134,11 @@ class ModelDeployment(FlowSpec):
             raise EnvironmentError(
                 "NUTSHELL_MODEL_PATH is neither in .env nor env variables")
 
-        self._send_slack_message("All required env variable have been found in provided env file", self._thread_ts)
+        self._send_slack_message(
+            "All required env variable have been found in provided env file", self._thread_ts)
         print("Now checking for SHA in MODEL_VERSION")
-        if not self.check_sha(self._workerEnv == "production", self.model_version):
-            raise RuntimeError("SHA does not match the requirements")
+        if not self.check_sha():
+            raise RuntimeError(f"SHA version ({self.model_version}) does not match the requirements")
         print("SHA version is complient")
         self.next(self.argo_application_creation)
 
@@ -176,13 +179,14 @@ class ModelDeployment(FlowSpec):
     def checkApplicationExists(self) -> bool:
         os.system("pip install requests")
         import requests
-        argocd_entrypoint: str = self.env_vars.get("TMP_ARGOCD_ENTRYPOINT") or ""
+        argocd_entrypoint: str = self.env_vars.get(
+            "TMP_ARGOCD_ENTRYPOINT") or ""
         token: str = self._argocdToken or ""
         headers = {"Authorization": f"Bearer {token}"}
         res = requests.get(
-                url=f"{argocd_entrypoint}/{self.application_name}",
-                headers=headers
-                )
+            url=f"{argocd_entrypoint}/{self.application_name}",
+            headers=headers
+        )
         if res.status_code == 200:
             return True
         elif res.status_code == 404:
@@ -206,16 +210,22 @@ class ModelDeployment(FlowSpec):
             {"name": "model.nutshellName", "value": self.model_name},
             {"name": "nodeSelector.name", "value": node_selector},
             {"name": "nutshell.worker.env", "value": self._workerEnv},
-            {"name": "model.servingMode", "value": self.env_vars.get("NUTSHELL_MODE")},
-            {"name": "model.templateSlug", "value": self.env_vars.get("LABEL_TEMPLATE_SLUG")},
-            {"name": "nutshell.fileLocationId", "value": self.env_vars.get( "NUTSHELL_WORKER_MODEL_FILE_LOC_ID")},
-            {"name": "nutshell.timeoutS", "value": self.env_vars.get( "NUTSHELL_WORKER_MODEL_PREDICT_TIMEOUT_S")},
-            {"name": "model.path", "value": self.env_vars.get( "NUTSHELL_MODEL_PATH")}
+            {"name": "model.servingMode",
+                "value": self.env_vars.get("NUTSHELL_MODE")},
+            {"name": "model.templateSlug",
+                "value": self.env_vars.get("LABEL_TEMPLATE_SLUG")},
+            {"name": "nutshell.fileLocationId", "value": self.env_vars.get(
+                "NUTSHELL_WORKER_MODEL_FILE_LOC_ID")},
+            {"name": "nutshell.timeoutS", "value": self.env_vars.get(
+                "NUTSHELL_WORKER_MODEL_PREDICT_TIMEOUT_S")},
+            {"name": "model.path", "value": self.env_vars.get(
+                "NUTSHELL_MODEL_PATH")}
         ]}
 
-        source = {"repoURL": "https://charts.inarix.com", "targetRevision": chart_version, "helm": helm, "chart": "inarix-serving"}
+        source = {"repoURL": "https://charts.inarix.com",
+                  "targetRevision": chart_version, "helm": helm, "chart": "inarix-serving"}
         specs = {"metadata": metadata, "spec": {"project": "model-serving", "source": source, "destination": {
-            "server": server_dest, "namespace": self._workerEnv} } }
+            "server": server_dest, "namespace": self._workerEnv}}}
         return specs
 
     @step
@@ -225,7 +235,8 @@ class ModelDeployment(FlowSpec):
         """
         os.system("pip install slackclient==2.9.4")
         if self.checkApplicationExists():
-            self._send_slack_message("Application already exists and cannot be created again", self._thread_ts)
+            self._send_slack_message(
+                "Application already exists and cannot be created again", self._thread_ts)
             raise RuntimeError(
                 f"{self.application_name} already exists and cannot be created again")
 
@@ -235,13 +246,15 @@ class ModelDeployment(FlowSpec):
         token = self._argocdToken
         endpoint = self.env_vars.get("TMP_ARGOCD_ENTRYPOINT")
         headers = {"Authorization": f"Bearer {token}"}
-        creation_response = requests.post(f"{endpoint}", json=specs, headers=headers)
+        creation_response = requests.post(
+            f"{endpoint}", json=specs, headers=headers)
 
         if creation_response.status_code != 200:
             resp_json = creation_response.json()
             raise HTTPError(f"error: {resp_json['error']}")
 
-        self._send_slack_message("Application has been created and will now be synced", self._thread_ts)
+        self._send_slack_message(
+            "Application has been created and will now be synced", self._thread_ts)
 
         self.next(self.sync_application)
 
@@ -262,8 +275,10 @@ class ModelDeployment(FlowSpec):
             resp_json = resp.json()
             raise HTTPError(f"error: {resp_json['error']}")
 
-        self._send_slack_message("Application has been synced with success", self._thread_ts)
-        self._send_slack_message("Waiting for it to be Healthy", self._thread_ts)
+        self._send_slack_message(
+            "Application has been synced with success", self._thread_ts)
+        self._send_slack_message(
+            "Waiting for it to be Healthy", self._thread_ts)
 
         self.waitForHealthy()
 
@@ -278,19 +293,20 @@ class ModelDeployment(FlowSpec):
         os.system("pip install slackclient==2.9.4")
         self.env_vars["ci"] = {"source": "Github Action",
                                "provider": "Metaflow", "path": __file__}
-        metadata = dict([x.strip().split('=') for x in self.env_file.split("\n") if '=' in x])
         model_template_id = self.env_vars.get("MODEL_TEMPLATE_ID")
-        project_id = self.env_vars.get("GOOGLE_PROJECT_ID")
 
         token = self._apiToken
         host_endpoint = self.env_vars.get("TMP_INARIX_HOSTNAME")
         endpoint = f"https://{host_endpoint}/imodels/model-instance"
         headers = {"Authorization": f"Bearer {token}"}
-        model_registration_payload = {"templateId": int(model_template_id), "branchSlug": self._workerEnv, "version": f"{self.model_version}",
-                                      "dockerImageUri": f"eu.gcr.io/{project_id}/{self.applied_repo}:{self.model_version}-staging", "isDeployed": True, "metadata": metadata}
+        metadata = {k: self.env_vars[k]
+                    for k in self.env_vars if not k.startswith('TMP_')}
+        model_registration_payload = {"templateId": int(model_template_id), "branchSlug": self._workerEnv, "version": self.model_version,
+                                      "dockerImageUri": f"eu.gcr.io/tf-infrastructure-ml/{self.applied_repo}:{self.model_version}", "isDeployed": True, "metadata": metadata}
 
         import requests
-        resp = requests.post(endpoint, headers=headers, json=model_registration_payload)
+        resp = requests.post(endpoint, headers=headers,
+                             json=model_registration_payload)
         resp_json = resp.json()
         if resp.status_code != 201:
             print("resp", resp_json)
@@ -303,7 +319,7 @@ class ModelDeployment(FlowSpec):
         if "id" not in resp_json:
             raise RuntimeError("There is no id key in resp_json.")
 
-        self._model_instance_id = resp_json["id"]
+        self._model_instance_id: str = resp_json["id"]
         self.next(self.end)
 
     @step
@@ -315,11 +331,13 @@ class ModelDeployment(FlowSpec):
         self._send_slack_message(
             f"{self.model_name} has been registered to inarix-api with id {self._model_instance_id}!", self._thread_ts)
 
-        run_id=os.environ.get("ARGO_WORKFLOW_NAME")
+        run_id = os.environ.get("ARGO_WORKFLOW_NAME")
         with S3(s3root=f's3://loki-artefacts/metaflow/modelInstanceIds/{run_id}') as s3:
-            url = s3.put('modelInstanceId', self._model_instance_id)
-            url = s3.put('threadTS', self._thread_ts)
-            print(f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
+            url = s3.put('modelInstanceId', str(self._model_instance_id))
+            url = s3.put('threadTS', str(self._thread_ts))
+            print(
+                f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
+
 
 if __name__ == '__main__':
     ModelDeployment(use_cli=True)
