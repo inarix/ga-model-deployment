@@ -6,8 +6,12 @@ in fact GithubAction is down, or unaccessible.
 import os
 import re
 import time
-from metaflow import FlowSpec, step, IncludeFile, S3
+
+from metaflow import FlowSpec, step, IncludeFile, S3, kubernetes
 from requests.exceptions import HTTPError
+
+KUBE_SECRETS = "model-deployment-secrets"
+PNX_IMAGE = "894517829775.dkr.ecr.eu-west-1.amazonaws.com/pnx:v3.0.0-headless"
 
 
 def generate_app_model_name(repo_name: str, model_version: str) -> str:
@@ -44,7 +48,11 @@ class ModelDeployment(FlowSpec):
         Entrypoint funtion to start model deployment
         This creates env variables dict to be used
         """
-        os.system("pip install slackclient==2.9.4")
+        self.next(self.init)
+
+    @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
+    @step
+    def init(self):
         self.env_vars = dict([x.strip().split('=')
                               for x in self.env_file.split("\n") if '=' in x])
 
@@ -56,12 +64,14 @@ class ModelDeployment(FlowSpec):
         self.applied_repo = self.env_vars.get(
             "GITHUB_REPOSITORY").split("/")[1]
 
-        self._workerEnv = self.env_vars.get("WORKER_ENV") or ""
-        self._argocdToken = self.env_vars.get("TMP_ARGOCD_TOKEN") or ""
-        self._apiToken = self.env_vars.get("TMP_API_TOKEN") or ""
+        self._workerEnv = self.env_vars.get("WORKER_ENV", "")
+        self._argocdToken = os.environ.get("ARGOCD_TOKEN", "")
+        self._apiToken = os.environ.get("INARIX_API_TOKEN", "")
         self._slack_channel_id = "C01LL4VRDKL"
+
         from slack.web.client import WebClient
-        self._slack = WebClient(token=self.env_vars.get("TMP_SLACK_API_TOKEN"))
+
+        self._slack = WebClient(token=os.environ.get("SLACK_API_TOKEN"))
 
         self._thread_ts = self._send_slack_message(
             f"[MODEL_DEPLOYMENT]: Metaflow deployment for {self.model_name}")
@@ -73,6 +83,7 @@ class ModelDeployment(FlowSpec):
         Send slack message
         """
         from slack.errors import SlackApiError
+
         try:
             response = None
             if thread_ts != "":
@@ -102,28 +113,29 @@ class ModelDeployment(FlowSpec):
             #  no SHA (e.g: 1.24.0-devops)
             res = compiled_version_rgx.match(self.model_version)
             if res is None:
-                self._send_slack_message(f"given {self.model_version} is not semver complient.", self._thread_ts)
+                self._send_slack_message(
+                    f"given {self.model_version} is not semver complient.", self._thread_ts)
                 return False
             return True
         else:
             # with SHA
             return len(sha_only[1]) == 6
 
+    @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
     @step
     def check_inputs(self):
         """
         Checks inputs before lauching argo_application_creation function
         """
-        os.system("pip install slackclient==2.9.4")
         if "WORKER_ENV" not in self.env_vars:
             raise EnvironmentError(
                 "WORKER_ENV is neither in .env nor env variables")
-        elif "TMP_ARGOCD_ENTRYPOINT" not in self.env_vars:
+        elif "ARGOCD_ENTRYPOINT" not in os.environ:
             raise EnvironmentError(
-                "TMP_ARGOCD_ENTRYPOINT is neither in .env nor env variables")
-        elif "TMP_ARGOCD_TOKEN" not in self.env_vars:
+                "ARGOCD_ENTRYPOINT is not in env variables")
+        elif "ARGOCD_TOKEN" not in os.environ:
             raise EnvironmentError(
-                "TMP_ARGOCD_TOKEN is neither in .env nor env variables")
+                "ARGOCD_TOKEN is not in env variables")
         elif "NUTSHELL_MODEL_VERSION" not in self.env_vars:
             raise EnvironmentError(
                 "NUTSHELL_MODEL_VERSION is neither in .env nor env variables")
@@ -138,19 +150,21 @@ class ModelDeployment(FlowSpec):
             "All required env variable have been found in provided env file", self._thread_ts)
         print("Now checking for SHA in MODEL_VERSION")
         if not self.check_sha():
-            raise RuntimeError(f"SHA version ({self.model_version}) does not match the requirements")
+            raise RuntimeError(
+                f"SHA version ({self.model_version}) does not match the requirements")
         print("SHA version is complient")
         self.next(self.argo_application_creation)
 
     def waitForHealthy(self):
-        os.system("pip install slackclient==2.9.4")
         import requests
-        endpoint = self.env_vars.get("TMP_ARGOCD_ENTRYPOINT")
+
+        endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
         token = self._argocdToken
         name = self.application_name
         max_retry = int(os.environ.get("INPUT_MAXRETRY", "10"))
         tts = int(os.environ.get("INPUT_TTS", "5"))
         headers = {"Authorization": f"Bearer {token}"}
+
         while True and max_retry > 0:
             res = requests.get(f"{endpoint}/{name}", headers=headers)
             if res.status_code != 200:
@@ -177,16 +191,17 @@ class ModelDeployment(FlowSpec):
             time.sleep(tts)
 
     def checkApplicationExists(self) -> bool:
-        os.system("pip install requests")
         import requests
-        argocd_entrypoint: str = self.env_vars.get(
-            "TMP_ARGOCD_ENTRYPOINT") or ""
+
+        argocd_entrypoint: str = os.environ.get(
+            "ARGOCD_ENTRYPOINT") or ""
         token: str = self._argocdToken or ""
         headers = {"Authorization": f"Bearer {token}"}
         res = requests.get(
             url=f"{argocd_entrypoint}/{self.application_name}",
             headers=headers
         )
+
         if res.status_code == 200:
             return True
         elif res.status_code == 404:
@@ -199,7 +214,6 @@ class ModelDeployment(FlowSpec):
         node_selector = "nutshell"
         chart_version = self.env_vars.get("MODEL_HELM_CHART_VERSION")
         server_dest = "https://34.91.136.161"
-
         metadata = {"name": self.application_name, "namespace": "default"}
 
         helm = {"parameters": [
@@ -226,14 +240,15 @@ class ModelDeployment(FlowSpec):
                   "targetRevision": chart_version, "helm": helm, "chart": "inarix-serving"}
         specs = {"metadata": metadata, "spec": {"project": "model-serving", "source": source, "destination": {
             "server": server_dest, "namespace": self._workerEnv}}}
+
         return specs
 
+    @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
     @step
     def argo_application_creation(self):
         """
         Create argo application
         """
-        os.system("pip install slackclient==2.9.4")
         if self.checkApplicationExists():
             self._send_slack_message(
                 "Application already exists and cannot be created again", self._thread_ts)
@@ -241,10 +256,11 @@ class ModelDeployment(FlowSpec):
                 f"{self.application_name} already exists and cannot be created again")
 
         import requests
+
         specs = self.generateArgoApplicationSpec()
 
         token = self._argocdToken
-        endpoint = self.env_vars.get("TMP_ARGOCD_ENTRYPOINT")
+        endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
         headers = {"Authorization": f"Bearer {token}"}
         creation_response = requests.post(
             f"{endpoint}", json=specs, headers=headers)
@@ -258,17 +274,20 @@ class ModelDeployment(FlowSpec):
 
         self.next(self.sync_application)
 
+    @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
     @step
     def sync_application(self):
         """
         Sync selected Application to ArgoCD
         """
-        os.system("pip install slackclient==2.9.4")
         import requests
+
         token = self._argocdToken
-        endpoint = self.env_vars.get("TMP_ARGOCD_ENTRYPOINT")
+        endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
         headers = {"Authorization": f"Bearer {token}"}
+
         print(f"Syncing {self.application_name}")
+
         resp = requests.post(
             f"{endpoint}/{self.application_name}/sync", headers=headers)
         if resp.status_code != 200:
@@ -285,18 +304,18 @@ class ModelDeployment(FlowSpec):
         self._send_slack_message("Application is now Healthy", self._thread_ts)
         self.next(self.register_model_to_api)
 
+    @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
     @step
     def register_model_to_api(self):
         """
         Register Nutshell Application as a new model template in the inarix-api
         """
-        os.system("pip install slackclient==2.9.4")
         self.env_vars["ci"] = {"source": "Github Action",
                                "provider": "Metaflow", "path": __file__}
         model_template_id = self.env_vars.get("MODEL_TEMPLATE_ID")
 
         token = self._apiToken
-        host_endpoint = self.env_vars.get("TMP_INARIX_HOSTNAME")
+        host_endpoint = os.environ.get("INARIX_API_HOSTNAME")
         endpoint = f"https://{host_endpoint}/imodels/model-instance"
         headers = {"Authorization": f"Bearer {token}"}
         metadata = {k: self.env_vars[k]
@@ -305,9 +324,11 @@ class ModelDeployment(FlowSpec):
                                       "dockerImageUri": f"eu.gcr.io/tf-infrastructure-ml/{self.applied_repo}:{self.model_version}", "isDeployed": True, "metadata": metadata}
 
         import requests
+
         resp = requests.post(endpoint, headers=headers,
                              json=model_registration_payload)
         resp_json = resp.json()
+
         if resp.status_code != 201:
             print("resp", resp_json)
             msg = resp_json["message"]
@@ -322,16 +343,17 @@ class ModelDeployment(FlowSpec):
         self._model_instance_id: str = resp_json["id"]
         self.next(self.end)
 
+    @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
     @step
     def end(self):
         """
         ending step
         """
-        os.system("pip install slackclient==2.9.4")
         self._send_slack_message(
             f"{self.model_name} has been registered to inarix-api with id {self._model_instance_id}!", self._thread_ts)
 
         run_id = os.environ.get("ARGO_WORKFLOW_NAME")
+
         with S3(s3root=f's3://loki-artefacts/metaflow/modelInstanceIds/{run_id}') as s3:
             url = s3.put('modelInstanceId', str(self._model_instance_id))
             url = s3.put('threadTS', str(self._thread_ts))

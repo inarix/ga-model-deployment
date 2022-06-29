@@ -4,7 +4,7 @@ init: requirements.txt
 	@pip install -r requirements.txt
 
 local: init
-	@python bookish.py run
+	METAFLOW_USER=inarix-saisona METAFLOW_KUBERNETES_SERVICE_ACCOUNT=argo-workflow METAFLOW_DATASTORE_SYSROOT_S3="s3://loki-artefacts/metaflow/" python bookish.py --datastore=s3 run
 
 argo-deploy: 
 	METAFLOW_USER=inarix-saisona METAFLOW_KUBERNETES_SERVICE_ACCOUNT=argo-workflow METAFLOW_DATASTORE_SYSROOT_S3="s3://loki-artefacts/metaflow/" python bookish.py --datastore=s3 argo-workflows create

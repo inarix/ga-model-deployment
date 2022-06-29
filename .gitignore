@@ -2,3 +2,4 @@
 .metaflow
 .env
 *.tmp
+**/__pycache__
