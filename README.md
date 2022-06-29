@@ -1,6 +1,7 @@
 # ga-model-deployment
 
-**Version:** v0.1.0
+**Version:** v2.0.0
+
 ## Table of contents
 
 1. [Getting started](#getting-started)
