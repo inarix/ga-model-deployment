@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "::group::Install dependencies"
-python -m pip install --extra-index-url https://$1:$2@pypiserver.inarix.com/simple/ metaflow==2.6.3 pnx==3.0.0 kubernetes
+python -m pip install --extra-index-url https://$1:$2@pypiserver.inarix.com/simple/ pnx==3.0.0
 echo "::endgroup::"
 
 echo "::group::Authenticate to cluster"
