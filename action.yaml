@@ -16,9 +16,15 @@ inputs:
     description: 'Name of the Argo Workflow template to run'
     required: false
     default: 'workflowtemplate/wt-model-deploy-non-regression'
+  pypiUsername:
+    description: 'Username for inarix pypiserver'
+    required: true
+  pypiPassword:
+    description: 'Password for inarix pypiserver'
+    required: true
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
-    - ${{ secrets.PYPI_USERNAME }}
-    - ${{ secrets.PYPI_PASSWORD }}
+    - ${{ inputs.pypiUsername }}
+    - ${{ inputs.pypiPassword }}
