@@ -19,3 +19,6 @@ outputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
+  args:
+    - ${{ secrets.PYPI_USERNAME }}
+    - ${{ secrets.PYPI_PASSWORD }}

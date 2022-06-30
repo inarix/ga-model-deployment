@@ -1,4 +1,8 @@
 #!/bin/bash
+echo "::group::Install dependencies"
+python -m pip install --extra-index-url https://$1:$2@pypiserver.inarix.com/simple/ -r requirements.txt
+echo "::endgroup::"
+
 echo "::group::Authenticate to cluster"
 if [[ -f .env ]]
 then

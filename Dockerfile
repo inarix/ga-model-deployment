@@ -1,5 +1,6 @@
 FROM argoproj/argocli:v3.3.6 AS argo-builder
 FROM alpine:3.16
+
 WORKDIR /app
 
 LABEL version="1.0.0"
@@ -23,7 +24,7 @@ COPY Makefile /app
 COPY requirements.txt /app
 
 # Install Glib 'cause does aws install does not work on ALPINE
-RUN python -m pip install --upgrade awscli s3cmd python-magic -r requirements.txt
+RUN python -m pip install --upgrade awscli s3cmd python-magic
 
 COPY --from=argo-builder /bin/argo /usr/local/bin/argo
 COPY bookish.py /app
