@@ -7,6 +7,9 @@ LABEL repository="https://github.com/inarix/ga-model-deployment"
 LABEL homepage="https://github.com/inarix/ga-model-deployment"
 LABEL maintainer="Alexandre Saison <alexandre.saison@inarix.com>"
 
+ARG PYPI_USERNAME
+ARG PYPI_PASSWORD
+
 # install required for entrypoint.sh and AWS AUTH AUTHENTICATOR
 RUN apk add --no-cache ca-certificates curl jq bash groff less binutils mailcap make && curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator &&\
     chmod +x ./aws-iam-authenticator &&\
@@ -23,7 +26,7 @@ COPY Makefile /app
 COPY requirements.txt /app
 
 # Install Glib 'cause does aws install does not work on ALPINE
-RUN python -m pip install --upgrade awscli s3cmd python-magic -r requirements.txt
+RUN python -m pip install --extra-index-url https://${PYPI_USERNAME}:${PYPI_PASSWORD}@pypiserver.inarix.com/simple/  --upgrade awscli s3cmd python-magic -r requirements.txt
 
 COPY --from=argo-builder /bin/argo /usr/local/bin/argo
 COPY bookish.py /app

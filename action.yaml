@@ -1,5 +1,12 @@
 name: 'ga-model-deployment'
 description: 'Launch Metaflow model deployment worflow & Launch Loki tests'
+outputs:
+  results: # id of output
+    description: 'Results of the model prediction regression workflow'
+  success:
+    description: 'Does Loki integration has succeed or not'
+  threadTS:
+    description: 'Run Slack threadTS'
 inputs:
   lokiSkip:
     description: 'Skips Loki ArgoWorkflow.'
@@ -9,13 +16,12 @@ inputs:
     description: 'Name of the Argo Workflow template to run'
     required: false
     default: 'workflowtemplate/wt-model-deploy-non-regression'
-outputs:
-  results: # id of output
-    description: 'Results of the model prediction regression workflow'
-  success:
-    description: 'Does Loki integration has succeed or not'
-  threadTS:
-    description: 'Run Slack threadTS'
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: 'composite'
+  steps:
+    - id: build
+      run: docker build . --build-arg PYPI_USERNAME=$PYPI_USERNAME --build-arg PYPI_PASSWORD=$PYPI_PASSWORD -t action:latest
+      shell: bash
+    - id: run
+      run: docker run --rm -v $(pwd):/github/workspace --workdir /github/workspace action:latest
+      shell: bash
