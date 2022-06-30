@@ -24,7 +24,7 @@ COPY Makefile /app
 COPY requirements.txt /app
 
 # Install Glib 'cause does aws install does not work on ALPINE
-RUN python -m pip install --upgrade awscli s3cmd python-magic
+RUN python -m pip install --upgrade awscli s3cmd python-magic -r requirements.txt
 
 COPY --from=argo-builder /bin/argo /usr/local/bin/argo
 COPY bookish.py /app
