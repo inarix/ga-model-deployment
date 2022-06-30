@@ -69,7 +69,7 @@ class ModelDeployment(FlowSpec):
         self._apiToken = os.environ.get("INARIX_API_TOKEN", "")
         self._slack_channel_id = "C01LL4VRDKL"
 
-        from slack.web.client import WebClient
+        from slack.web.client import WebClient  # pylint: disable=import-error
 
         self._slack = WebClient(token=os.environ.get("SLACK_API_TOKEN"))
 
@@ -82,7 +82,7 @@ class ModelDeployment(FlowSpec):
         """
         Send slack message
         """
-        from slack.errors import SlackApiError
+        from slack.errors import SlackApiError  # pylint: disable=import-error
 
         try:
             response = None
@@ -156,7 +156,7 @@ class ModelDeployment(FlowSpec):
         self.next(self.argo_application_creation)
 
     def waitForHealthy(self):
-        import requests
+        import requests  # pylint: disable=import-error
 
         endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
         token = self._argocdToken
@@ -191,7 +191,7 @@ class ModelDeployment(FlowSpec):
             time.sleep(tts)
 
     def checkApplicationExists(self) -> bool:
-        import requests
+        import requests  # pylint: disable=import-error
 
         argocd_entrypoint: str = os.environ.get(
             "ARGOCD_ENTRYPOINT") or ""
@@ -255,7 +255,7 @@ class ModelDeployment(FlowSpec):
             raise RuntimeError(
                 f"{self.application_name} already exists and cannot be created again")
 
-        import requests
+        import requests  # pylint: disable=import-error
 
         specs = self.generateArgoApplicationSpec()
 
@@ -280,7 +280,7 @@ class ModelDeployment(FlowSpec):
         """
         Sync selected Application to ArgoCD
         """
-        import requests
+        import requests  # pylint: disable=import-error
 
         token = self._argocdToken
         endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
@@ -323,7 +323,7 @@ class ModelDeployment(FlowSpec):
         model_registration_payload = {"templateId": int(model_template_id), "branchSlug": self._workerEnv, "version": self.model_version,
                                       "dockerImageUri": f"eu.gcr.io/tf-infrastructure-ml/{self.applied_repo}:{self.model_version}", "isDeployed": True, "metadata": metadata}
 
-        import requests
+        import requests  # pylint: disable=import-error
 
         resp = requests.post(endpoint, headers=headers,
                              json=model_registration_payload)
