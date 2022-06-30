@@ -17,7 +17,7 @@ RUN apk add --no-cache make gcc g++ cmake ca-certificates curl jq bash groff les
 
 # Install python/pip
 ENV PYTHONUNBUFFERED=1
-RUN apk add --update --no-cache python3 py3-pip && ln -sf python3 /usr/bin/python && python -m ensurepip && pip install --no-cache --upgrade pip setuptools
+RUN apk add --update --no-cache python3-dev python3 py3-pip && ln -sf python3 /usr/bin/python && python -m ensurepip && pip install --no-cache --upgrade pip setuptools
 
 # Since those file won't change that much (using docker cache to improve build time)
 COPY Makefile /app
