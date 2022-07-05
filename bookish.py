@@ -241,13 +241,13 @@ class ModelDeployment(FlowSpec):
         ]}
 
         if self._hasSHA:
-            helm.get("parameters") = append(helm.get("parameters"), {
+            helm.get("parameters") = helm.get("parameters") + [{
                 "name": "autoscaling.enabled",
                 "value": "true"
             }, {
                 "name": "autoscaling.minReplicas",
                 "value": "2"
-            })
+            }]
 
         source = {"repoURL": "https://charts.inarix.com",
                   "targetRevision": chart_version, "helm": helm, "chart": "inarix-serving"}
