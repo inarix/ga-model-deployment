@@ -105,15 +105,18 @@ if [[ "${HAS_SUCCEED}" == "TEST_HAS_FAILED" ]]
 then
   echo "::set-output name=results::'${LOGS}'"
   echo "::set-output name=threadTS::${THREAD_TS}"
+  echo "::set-output name=modelInstanceId::${$MODEL_INSTANCE_ID}"
   echo "::set-output name=success::false"
 elif [[ "${HAS_SUCCEED}" == "TEST_HAS_PASSED" ]]
 then
   echo "::set-output name=results::'${LOGS}'"
   echo "::set-output name=threadTS::${THREAD_TS}"
+  echo "::set-output name=modelInstanceId::${$MODEL_INSTANCE_ID}"
   echo "::set-output name=success::true"
 else
   echo "::set-output name=results::'${LOGS}'"
   echo "::set-output name=threadTS::${THREAD_TS}"
+  echo "::set-output name=modelInstanceId::${$MODEL_INSTANCE_ID}"
   echo "::set-output name=success::false"
 fi
 echo "::endgroup::"
