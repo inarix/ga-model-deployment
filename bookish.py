@@ -241,7 +241,7 @@ class ModelDeployment(FlowSpec):
         ]}
 
         if self._hasSHA:
-            helm.get("parameters") = helm.get("parameters") + [{
+            helm["parameters"] = helm.get("parameters", []) + [{
                 "name": "autoscaling.enabled",
                 "value": "true"
             }, {
