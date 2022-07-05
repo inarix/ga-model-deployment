@@ -69,7 +69,7 @@ class ModelDeployment(FlowSpec):
         self._apiToken = os.environ.get("INARIX_API_TOKEN", "")
         self._slack_channel_id = "C01LL4VRDKL"
 
-        from slack.web.client import WebClient
+        from slack.web.client import WebClient  # pylint: disable=import-error
 
         self._slack = WebClient(token=os.environ.get("SLACK_API_TOKEN"))
 
@@ -82,7 +82,7 @@ class ModelDeployment(FlowSpec):
         """
         Send slack message
         """
-        from slack.errors import SlackApiError
+        from slack.errors import SlackApiError  # pylint: disable=import-error
 
         try:
             response = None
@@ -116,9 +116,11 @@ class ModelDeployment(FlowSpec):
                 self._send_slack_message(
                     f"given {self.model_version} is not semver complient.", self._thread_ts)
                 return False
+            self._hasSHA = False
             return True
         else:
             # with SHA
+            self._hasSHA = True
             return len(sha_only[1]) == 6
 
     @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
@@ -150,13 +152,15 @@ class ModelDeployment(FlowSpec):
             "All required env variable have been found in provided env file", self._thread_ts)
         print("Now checking for SHA in MODEL_VERSION")
         if not self.check_sha():
+            self._send_slack_message(
+                f"[ERROR] SHA version ({self.model_version}) does not match the requirements", self._thread_ts)
             raise RuntimeError(
                 f"SHA version ({self.model_version}) does not match the requirements")
         print("SHA version is complient")
         self.next(self.argo_application_creation)
 
     def waitForHealthy(self):
-        import requests
+        import requests  # pylint: disable=import-error
 
         endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
         token = self._argocdToken
@@ -191,7 +195,7 @@ class ModelDeployment(FlowSpec):
             time.sleep(tts)
 
     def checkApplicationExists(self) -> bool:
-        import requests
+        import requests  # pylint: disable=import-error
 
         argocd_entrypoint: str = os.environ.get(
             "ARGOCD_ENTRYPOINT") or ""
@@ -236,6 +240,21 @@ class ModelDeployment(FlowSpec):
                 "NUTSHELL_MODEL_PATH")}
         ]}
 
+        if not self._hasSHA:
+            helm["parameters"] = helm.get("parameters", []) + [{
+                "name": "autoscaling.enabled",
+                "value": "true"
+            }, {
+                "name": "autoscaling.minReplicas",
+                "value": "2"
+            }, {
+                "name": "autoscaling.targetCPUUtilizationPercentage",
+                "value": "80"
+            }, {
+                "name": "autoscaling.targetMemoryUtilizationPercentage",
+                "value": "80"
+            }]
+
         source = {"repoURL": "https://charts.inarix.com",
                   "targetRevision": chart_version, "helm": helm, "chart": "inarix-serving"}
         specs = {"metadata": metadata, "spec": {"project": "model-serving", "source": source, "destination": {
@@ -255,7 +274,7 @@ class ModelDeployment(FlowSpec):
             raise RuntimeError(
                 f"{self.application_name} already exists and cannot be created again")
 
-        import requests
+        import requests  # pylint: disable=import-error
 
         specs = self.generateArgoApplicationSpec()
 
@@ -280,7 +299,7 @@ class ModelDeployment(FlowSpec):
         """
         Sync selected Application to ArgoCD
         """
-        import requests
+        import requests  # pylint: disable=import-error
 
         token = self._argocdToken
         endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
@@ -323,7 +342,7 @@ class ModelDeployment(FlowSpec):
         model_registration_payload = {"templateId": int(model_template_id), "branchSlug": self._workerEnv, "version": self.model_version,
                                       "dockerImageUri": f"eu.gcr.io/tf-infrastructure-ml/{self.applied_repo}:{self.model_version}", "isDeployed": True, "metadata": metadata}
 
-        import requests
+        import requests  # pylint: disable=import-error
 
         resp = requests.post(endpoint, headers=headers,
                              json=model_registration_payload)
