@@ -240,13 +240,19 @@ class ModelDeployment(FlowSpec):
                 "NUTSHELL_MODEL_PATH")}
         ]}
 
-        if self._hasSHA:
+        if not self._hasSHA:
             helm["parameters"] = helm.get("parameters", []) + [{
                 "name": "autoscaling.enabled",
                 "value": "true"
             }, {
                 "name": "autoscaling.minReplicas",
                 "value": "2"
+            }, {
+                "name": "autoscaling.targetCPUUtilizationPercentage",
+                "value": "80"
+            }, {
+                "name": "autoscaling.targetMemoryUtilizationPercentage",
+                "value": "80"
             }]
 
         source = {"repoURL": "https://charts.inarix.com",
