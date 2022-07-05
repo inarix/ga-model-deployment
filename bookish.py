@@ -116,9 +116,11 @@ class ModelDeployment(FlowSpec):
                 self._send_slack_message(
                     f"given {self.model_version} is not semver complient.", self._thread_ts)
                 return False
+            self._hasSHA = False
             return True
         else:
             # with SHA
+            self._hasSHA = True
             return len(sha_only[1]) == 6
 
     @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
@@ -150,6 +152,8 @@ class ModelDeployment(FlowSpec):
             "All required env variable have been found in provided env file", self._thread_ts)
         print("Now checking for SHA in MODEL_VERSION")
         if not self.check_sha():
+            self._send_slack_message(
+                f"[ERROR] SHA version ({self.model_version}) does not match the requirements", self._thread_ts)
             raise RuntimeError(
                 f"SHA version ({self.model_version}) does not match the requirements")
         print("SHA version is complient")
@@ -235,6 +239,15 @@ class ModelDeployment(FlowSpec):
             {"name": "model.path", "value": self.env_vars.get(
                 "NUTSHELL_MODEL_PATH")}
         ]}
+
+        if self._hasSHA:
+            helm.get("parameters") = helm.get("parameters") + [{
+                "name": "autoscaling.enabled",
+                "value": "true"
+            }, {
+                "name": "autoscaling.minReplicas",
+                "value": "2"
+            }]
 
         source = {"repoURL": "https://charts.inarix.com",
                   "targetRevision": chart_version, "helm": helm, "chart": "inarix-serving"}
