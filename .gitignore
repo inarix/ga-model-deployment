@@ -3,3 +3,4 @@
 .env
 *.tmp
 **/__pycache__
+.metaflow

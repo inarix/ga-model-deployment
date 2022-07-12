@@ -48,25 +48,28 @@ echo "[$(date +"%m/%d/%y %T")] Waiting $WORKFLOW_MODEL_DEPLOY_ID"
 argo wait $WORKFLOW_MODEL_DEPLOY_ID
 if [[ $? == 1 ]]
 then
-echo "[$(date +"%m/%d/%y %T")] ArgoWorkflow failed"
-exit 1
+  echo "[$(date +"%m/%d/%y %T")] ArgoWorkflow failed"
+  exit 1
 fi
 
 URI_MODEL_INSTANCE_ID="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/modelInstanceId"
 URI_THREAD_TS="s3://loki-artefacts/metaflow/modelInstanceIds/$WORKFLOW_MODEL_DEPLOY_ID/threadTS"
 echo "[$(date +"%m/%d/%y %T")] Downloading ModelInstance id from $URI"
+
 aws s3 cp $URI_MODEL_INSTANCE_ID ./modelInstanceId
 if [[ $? == 1 ]]
 then
-echo "[$(date +"%m/%d/%y %T")] An error occured while fetching $URI_MODEL_INSTANCE_ID"
-exit 1
+  echo "[$(date +"%m/%d/%y %T")] An error occured while fetching $URI_MODEL_INSTANCE_ID"
+  exit 1
 fi
+
 aws s3 cp $URI_THREAD_TS ./threadTS
 if [[ $? == 1 ]]
 then
-echo "[$(date +"%m/%d/%y %T")] An error occured while fetching $URI_THREAD_TS"
-exit 1
+  echo "[$(date +"%m/%d/%y %T")] An error occured while fetching $URI_THREAD_TS"
+  exit 1
 fi
+
 MODEL_INSTANCE_ID=$(cat modelInstanceId)
 THREAD_TS=$(cat threadTS)
 echo "[$(date +"%m/%d/%y %T")] modelInstanceId is $MODEL_INSTANCE_ID and threadTS is $THREAD_TS"

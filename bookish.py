@@ -168,7 +168,6 @@ class ModelDeployment(FlowSpec):
         max_retry = int(os.environ.get("INPUT_MAXRETRY", "10"))
         tts = int(os.environ.get("INPUT_TTS", "5"))
         headers = {"Authorization": f"Bearer {token}"}
-
         while True and max_retry > 0:
             res = requests.get(f"{endpoint}/{name}", headers=headers)
             if res.status_code != 200:
@@ -193,6 +192,9 @@ class ModelDeployment(FlowSpec):
 
             print(f"Waiting for {tts}s")
             time.sleep(tts)
+        
+        if status != "Healthy":
+            raise RuntimeError(f"Health status error: {status} after all retries")
 
     def checkApplicationExists(self) -> bool:
         import requests  # pylint: disable=import-error
@@ -376,6 +378,13 @@ class ModelDeployment(FlowSpec):
         with S3(s3root=f's3://loki-artefacts/metaflow/modelInstanceIds/{run_id}') as s3:
             url = s3.put('modelInstanceId', str(self._model_instance_id))
             url = s3.put('threadTS', str(self._thread_ts))
+            print(
+                f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
+
+        run_id = os.environ.get("ARGO_WORKFLOW_NAME")
+        with S3(s3root=f's3://loki-artefacts/metaflow/modelInstanceIds/{run_id}') as s3:
+            url = s3.put('modelInstanceId', self._model_instance_id)
+            url = s3.put('threadTS', self._thread_ts)
             print(
                 f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
 
