@@ -193,7 +193,7 @@ class ModelDeployment(FlowSpec):
             print(f"Waiting for {tts}s")
             time.sleep(tts)
         
-        if status == "Missing" or status == "Degraded":
+        if status != "Healthy":
             raise RuntimeError(f"Health status error: {status} after all retries")
 
     def checkApplicationExists(self) -> bool:
