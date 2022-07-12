@@ -165,8 +165,8 @@ class ModelDeployment(FlowSpec):
         endpoint = os.environ.get("ARGOCD_ENTRYPOINT")
         token = self._argocdToken
         name = self.application_name
-        max_retry = int(os.environ.get("INPUT_MAXRETRY", "10"))
-        tts = int(os.environ.get("INPUT_TTS", "10"))
+        max_retry = int(os.environ.get("INPUT_MAXRETRY", "30"))
+        tts = int(os.environ.get("INPUT_TTS", "30"))
         headers = {"Authorization": f"Bearer {token}"}
         while True and max_retry > 0:
             res = requests.get(f"{endpoint}/{name}", headers=headers)
@@ -248,7 +248,7 @@ class ModelDeployment(FlowSpec):
                 "value": "true"
             }, {
                 "name": "autoscaling.minReplicas",
-                "value": "2"
+                "value": "1"
             }, {
                 "name": "autoscaling.targetCPUUtilizationPercentage",
                 "value": "80"
