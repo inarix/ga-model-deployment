@@ -248,7 +248,7 @@ class ModelDeployment(FlowSpec):
                 "value": "true"
             }, {
                 "name": "autoscaling.minReplicas",
-                "value": "1"
+                "value": "2"
             }, {
                 "name": "autoscaling.targetCPUUtilizationPercentage",
                 "value": "80"
