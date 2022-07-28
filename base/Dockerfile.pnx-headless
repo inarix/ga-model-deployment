@@ -3,4 +3,4 @@ FROM python:3.9.0
 ARG PYPI_USERNAME
 ARG PYPI_PASSWORD
 
-RUN pip install --extra-index-url https://${PYPI_USERNAME}:${PYPI_PASSWORD}@pypiserver.inarix.com/simple/ pnx==3.0.0
+RUN pip install --extra-index-url https://${PYPI_USERNAME}:${PYPI_PASSWORD}@pypiserver.inarix.com/simple/ pnx==3.0.0 model_worker_protocol
