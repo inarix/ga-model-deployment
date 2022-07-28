@@ -7,7 +7,7 @@ import os
 import re
 import time
 
-from metaflow import FlowSpec, step, IncludeFile, S3, kubernetes
+from metaflow import FlowSpec, step, IncludeFile, S3, kubernetes, retry
 from requests.exceptions import HTTPError
 
 KUBE_SECRETS = "model-deployment-secrets"
@@ -265,6 +265,7 @@ class ModelDeployment(FlowSpec):
         return specs
 
     @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
+    @retry
     @step
     def argo_application_creation(self):
         """
@@ -296,6 +297,7 @@ class ModelDeployment(FlowSpec):
         self.next(self.sync_application)
 
     @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
+    @retry
     @step
     def sync_application(self):
         """
@@ -326,6 +328,7 @@ class ModelDeployment(FlowSpec):
         self.next(self.register_model_to_api)
 
     @kubernetes(secrets=KUBE_SECRETS, image=PNX_IMAGE)
+    @retry
     @step
     def register_model_to_api(self):
         """

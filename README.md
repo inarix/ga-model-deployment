@@ -1,6 +1,6 @@
 # ga-model-deployment
 
-**Version:** v2.0.0
+**Version:** v2.0.1
 
 ## Table of contents
 

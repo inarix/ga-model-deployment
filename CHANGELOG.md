@@ -1,5 +1,9 @@
 # Changelog
 
+**v2.0.1**
+
+- [bookish.py] Add @retry decorator to essential steps in case of failure
+
 **v2.0.0**
 
 - [bookish.py] Use @kubernetes to mount secrets + custom image
