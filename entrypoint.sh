@@ -99,7 +99,7 @@ LOGS=$(argo logs $WORKFLOW_NAME --no-color)
 # TRAILED_LOGS=$(echo -n $LOGS | tail -n +2 | while read line; do; echo $($line | cut -d ':' -f2-) ; done )
 
 # echo "TRAILED_LOGS=${TRAILED_LOGS}"
-HAS_SUCCEED=$(echo -n "${LOGS}" | tail -n3 | head -n1 | cut -d : -f2- | tr -d ' ')
+HAS_SUCCEED=$(echo -n "${LOGS}" | tail -n4 | head -n1 | cut -d : -f2- | tr -d ' ')
 
 # -- Remove line breaker before sending values (Required by GithubAction)  --
 LOGS="${LOGS//$'\n'/'%0A'}"
