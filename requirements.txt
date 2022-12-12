@@ -1,2 +1,2 @@
-metaflow==2.6.3
+metaflow==2.7.18
 kubernetes
