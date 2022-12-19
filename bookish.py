@@ -192,9 +192,10 @@ class ModelDeployment(FlowSpec):
 
             print(f"Waiting for {tts}s")
             time.sleep(tts)
-        
+
         if status != "Healthy":
-            raise RuntimeError(f"Health status error: {status} after all retries")
+            raise RuntimeError(
+                f"Health status error: {status} after all retries")
 
     def checkApplicationExists(self) -> bool:
         import requests  # pylint: disable=import-error
@@ -221,8 +222,7 @@ class ModelDeployment(FlowSpec):
         chart_version = self.env_vars.get("MODEL_HELM_CHART_VERSION")
         server_dest = "https://34.91.136.161"
         metadata = {"name": self.application_name, "namespace": "default"}
-
-        helm = {"parameters": [
+        parameters = [
             {"name": "app.env", "value": self._workerEnv},
             {"name": "image.imageName", "value": self.applied_repo},
             {"name": "image.version", "value": self.model_version[1:]},
@@ -240,7 +240,17 @@ class ModelDeployment(FlowSpec):
                 "NUTSHELL_WORKER_MODEL_PREDICT_TIMEOUT_S")},
             {"name": "model.path", "value": self.env_vars.get(
                 "NUTSHELL_MODEL_PATH")}
-        ]}
+        ]
+
+        resource_cpu = int(os.environ.get("INPUT_RESOURCEMEMORY", "-1"))
+        if resource_cpu > -1:
+            parameters.append({"name": "resources.cpu", "value": resource_cpu})
+        resource_memory = int(os.environ.get("INPUT_RESOURCECPU", "-1"))
+        if resource_memory > -1:
+            parameters.append(
+                {"name": "resources.memory", "value": resource_memory})
+
+        helm = {"parameters": parameters}
 
         if not self._hasSHA:
             helm["parameters"] = helm.get("parameters", []) + [{
@@ -383,6 +393,7 @@ class ModelDeployment(FlowSpec):
             url = s3.put('threadTS', str(self._thread_ts))
             print(
                 f"ModelInstanceId({self._model_instance_id}) file is saved at = {url}")
+
 
 if __name__ == '__main__':
     ModelDeployment(use_cli=True)

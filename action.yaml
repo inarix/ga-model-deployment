@@ -10,6 +10,14 @@ outputs:
   modelInstanceId:
     description: "ModelInstance id registered by the API"
 inputs:
+  resourceMemory:
+    description: "Specify resources memory of the application to deploy"
+    required: false
+    default: "-1"
+  resourceCPU:
+    description: "Specify resources CPU of the application to deploy"
+    required: false
+    default: "-1"
   lokiSkip:
     description: "Skips Loki ArgoWorkflow."
     required: true
