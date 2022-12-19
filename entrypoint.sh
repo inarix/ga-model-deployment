@@ -106,20 +106,20 @@ LOGS="${LOGS//$'\n'/'%0A'}"
 
 if [[ "${HAS_SUCCEED}" == "TEST_HAS_FAILED" ]]
 then
-  echo "::set-output name=results::'${LOGS}'"
-  echo "::set-output name=threadTS::${THREAD_TS}"
-  echo "::set-output name=modelInstanceId::${MODEL_INSTANCE_ID}"
-  echo "::set-output name=success::false"
+  echo "results='${LOGS}'" >> $GITHUB_OUTPUT
+  echo "threadTS=${THREAD_TS}" >> $GITHUB_OUTPUT
+  echo "modelInstanceId=${MODEL_INSTANCE_ID}" >> $GITHUB_OUTPUT
+  echo "success=false" >> $GITHUB_OUTPUT
 elif [[ "${HAS_SUCCEED}" == "TEST_HAS_PASSED" ]]
 then
-  echo "::set-output name=results::'${LOGS}'"
-  echo "::set-output name=threadTS::${THREAD_TS}"
-  echo "::set-output name=modelInstanceId::${MODEL_INSTANCE_ID}"
-  echo "::set-output name=success::true"
+  echo "results='${LOGS}'" >> $GITHUB_OUTPUT
+  echo "threadTS=${THREAD_TS}" >> $GITHUB_OUTPUT
+  echo "modelInstanceId=${MODEL_INSTANCE_ID}" >> $GITHUB_OUTPUT
+  echo "success=true" >> $GITHUB_OUTPUT
 else
-  echo "::set-output name=results::'${LOGS}'"
-  echo "::set-output name=threadTS::${THREAD_TS}"
-  echo "::set-output name=modelInstanceId::${MODEL_INSTANCE_ID}"
-  echo "::set-output name=success::false"
+  echo "results='${LOGS}'" >> $GITHUB_OUTPUT
+  echo "threadTS=${THREAD_TS}" >> $GITHUB_OUTPUT
+  echo "modelInstanceId=${MODEL_INSTANCE_ID}" >> $GITHUB_OUTPUT
+  echo "success=false" >> $GITHUB_OUTPUT
 fi
 echo "::endgroup::"
