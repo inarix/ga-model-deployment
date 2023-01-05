@@ -244,11 +244,11 @@ class ModelDeployment(FlowSpec):
 
         resource_cpu = int(os.environ.get("INPUT_RESOURCEMEMORY", "-1"))
         if resource_cpu > -1:
-            self._send_slack_message(f"Modified Kubernetes CPU to {resource_cpu}", self._thread_ts)
+            self._send_slack_message(f"Set CPU resource amount to {resource_cpu}", self._thread_ts)
             parameters.append({"name": "resources.cpu", "value": resource_cpu})
         resource_memory = int(os.environ.get("INPUT_RESOURCECPU", "-1"))
         if resource_memory > -1:
-            self._send_slack_message(f"Modified Kubernetes CPU to {resource_memory}", self._thread_ts)
+            self._send_slack_message(f"Set memory resource amount to {resource_memory}", self._thread_ts)
             parameters.append(
                 {"name": "resources.memory", "value": resource_memory})
 
